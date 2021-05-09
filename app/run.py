@@ -31,19 +31,15 @@ with open('../models/classifier.pkl', 'rb') as model_file:
 @app.route('/index')
 def index():
     
-    # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
-    genre_counts = df.groupby('genre').count()['message']
-    genre_names = list(genre_counts.index)
+    genres = df.genre.value_counts()
+    categories = df.iloc[:, 4:].sum()
     
-    # create visuals
-    # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
             'data': [
                 Bar(
-                    x=genre_names,
-                    y=genre_counts
+                    x=list(genres.index),
+                    y=list(genres.values)
                 )
             ],
 
@@ -56,7 +52,31 @@ def index():
                     'title': "Genre"
                 }
             }
-        }
+        },
+        {
+            'data': [
+                Bar(
+                    x=list(categories.index),
+                    y=list(categories.values)
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of Categories',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Category"
+                },
+                'margin': {
+                    't': 100,
+                    'b': 200
+                },
+                'height': 600
+            }
+        },
+
     ]
     
     # encode plotly graphs in JSON
