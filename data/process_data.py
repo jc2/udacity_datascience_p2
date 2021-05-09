@@ -1,16 +1,68 @@
 import sys
 
+import pandas as pd
+from sqlalchemy import create_engine
+
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    '''
+    INPUT
+    messages_filepath - Messages Filepath
+    categories_filepath - Categories Filepath
+
+    OUTPUT
+    df - Merged DataFrame
+    '''
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+    df = messages.merge(categories, left_on='id', right_on='id')
+    return df
 
 
 def clean_data(df):
-    pass
+    '''
+    INPUT
+    df - Merged Datafame
+
+    OUTPUT
+    df - Cleaned DataFrame
+
+    Description:
+    This functions formats the categories in a way they are distributed over the columns
+    and clean dups
+    '''
+    categories = df.categories.str.split(";", expand=True)
+    row = categories.iloc[0]
+    category_colnames = row.apply(lambda x: x.split("-")[0])
+    categories.columns = category_colnames
+
+    for column in categories:
+        categories[column] = categories[column].apply(lambda x: int(x.split("-")[1]))
+
+    df = df.drop(columns=['categories'])
+    df = pd.concat([df, categories], axis=1)
+
+    df = df.drop_duplicates(subset=["message"])
+
+    df = df[df["related"] != 2]
+
+    return df
 
 
 def save_data(df, database_filename):
-    pass  
+    '''
+    INPUT
+    df - Cleaned Datafame
+    database_filename - SQLite Filepath
+
+    OUTPUT
+    None
+
+    Description:
+    This function saves DataFrame into a SQLite table and store it
+    '''
+    engine = create_engine(f'sqlite:///{database_filename}')
+    df.to_sql('messages', engine, index=False)  
 
 
 def main():
