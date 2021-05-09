@@ -52,8 +52,11 @@ def tokenize(text):
     return tokens
 
 
-def build_model():
+def build_model(grid_search=False):
     '''
+    INPUT
+    grid_search - Use Grid Search to find the best model (False default)
+
     OUTPUT
     cv - Model wrapped in a GridSearch
     '''
@@ -65,13 +68,16 @@ def build_model():
         ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
 
+    if not grid_search:
+        return pipeline
+
     parameters = {
         'vect__ngram_range': ((1, 1), (1, 2)),
-        # 'vect__max_df': (0.5, 0.75, 1.0),
-        # 'vect__max_features': (None, 5000, 10000),
-        # 'tfidf__use_idf': (True, False),
-        # 'clf__estimator__n_estimators': [50, 100, 200],
-        # 'clf__estimator__min_samples_split': [2, 3, 4],
+        'vect__max_df': (0.5, 0.75, 1.0),
+        'vect__max_features': (None, 5000, 10000),
+        'tfidf__use_idf': (True, False),
+        'clf__estimator__n_estimators': [50, 100, 200],
+        'clf__estimator__min_samples_split': [2, 3, 4],
     }
 
     cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=1)
@@ -95,8 +101,6 @@ def evaluate_model(model, X_test, Y_test):
         print("=====", Y_test.columns[i] ,"=====")
         print(classification_report(Y_test.iloc[:,i], Y_pred[:,i], output_dict=False, zero_division=0))
 
-    print("Best params: ", model.best_params_)
-
 
 def save_model(model, model_filepath):
     '''
@@ -110,14 +114,20 @@ def save_model(model, model_filepath):
 
 
 def main():
-    if len(sys.argv) == 3:
-        database_filepath, model_filepath = sys.argv[1:]
+    if len(sys.argv) in (4,5):
+        if len(sys.argv) == 4:
+            database_filepath, model_filepath = sys.argv[1:]
+            grip_search = False
+        else:
+            database_filepath, model_filepath, grip_search = sys.argv[1:]
+            grip_search = grip_search.lower() == "true"
+
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
         
         print('Building model...')
-        model = build_model()
+        model = build_model(grip_search)
         
         print('Training model...')
         model.fit(X_train, Y_train)
@@ -134,7 +144,7 @@ def main():
         print('Please provide the filepath of the disaster messages database '\
               'as the first argument and the filepath of the pickle file to '\
               'save the model to as the second argument. \n\nExample: python '\
-              'train_classifier.py ../data/DisasterResponse.db classifier.pkl')
+              'train_classifier.py ../data/DisasterResponse.db classifier.pkl False')
 
 
 if __name__ == '__main__':
